@@ -9,6 +9,7 @@ import {
   PermissionsAndroid,
   AppState,
   ActivityIndicator,
+  Button,
 } from 'react-native';
 import BleManager from 'react-native-ble-manager';
 import difference from 'lodash.difference';
@@ -37,6 +38,29 @@ class App extends Component {
     scanning: false,
     peripherals: new Map(),
     appState: '',
+  };
+
+  convert16bitIntToFloat = (num) => {
+    if ((num & 0x8000) > 0) {
+      num = num - 0x10000;
+    }
+    return num;
+  };
+
+  convertUnit8ToUintArray16Array = (value) => {
+    // const value = value;
+    const arr16 = new Uint16Array(18);
+    arr16[0] = (value[3] << 8) + value[2]; // ax
+    arr16[1] = (value[5] << 8) + value[4]; // ay
+    arr16[2] = (value[7] << 8) + value[6]; // az
+    arr16[3] = (value[9] << 8) + value[8]; // wx
+    arr16[4] = (value[11] << 8) + value[10]; // wy
+    arr16[5] = (value[13] << 8) + value[12]; // wz
+    arr16[6] = (value[15] << 8) + value[14]; // roll
+    arr16[7] = (value[17] << 8) + value[16]; // pitch
+    arr16[8] = (value[19] << 8) + value[18]; // yaw
+
+    return arr16;
   };
 
   componentDidMount = async () => {
@@ -69,7 +93,7 @@ class App extends Component {
       this.handleUpdateValueForCharacteristic,
     );
 
-    this.startScan();
+    // this.startScan();
   };
 
   handleAppStateChange = async (nextAppState) => {
@@ -113,15 +137,25 @@ class App extends Component {
     if (!data.value) {
       return;
     }
+    console.log(`data.value, ${data.value}`);
 
-    const value = decode(data.value);
-    if (!value || value.indexOf('x') === -1 || value.split('x').length !== 3) {
-      console.log('Received sensorData is not formatted correctly', value);
-      return;
-    }
+    // const value = decode(data.value);
+    const value = data.value;
 
-    const valueArr = value.split('x');
-    const numbersArr = valueArr.map((item) => parseInt(item, 10));
+    let az =
+      (this.convert16bitIntToFloat((value[7] << 8) + value[6]) / 32768) * 16;
+    // console.log(`az  ${az}`);
+    // if (!value || value.indexOf('x') === -1 || value.split('x').length !== 3) {
+    //   console.log('Received sensorData is not formatted correctly', value);
+    //   return;
+    // }
+
+    // const valueArr = value.split('x');
+    // const valueArr = this.convertUnit8ToUintArray16Array(value) // TODO
+
+    // const numbersArr = valueArr.map((item) => parseInt(item, 10));
+    const numbersArr = new Uint16Array(3);
+    numbersArr[0] = az;
 
     this.setState({ sensorData: numbersArr });
   };
@@ -137,13 +171,17 @@ class App extends Component {
         return;
       }
 
+      console.log(`peripherals ${peripherals}`);
+
       const device = findPeripheral(peripherals, DEVICE_UUID);
+      console.log(`device ${device}`);
 
       if (!device) {
         console.log(`Cannot detect device ${DEVICE_UUID}`);
         return;
       }
 
+      console.log(`device : ${device}`);
       if (!device.connected) {
         this.hookUpSensorNotifications(device);
       }
@@ -151,11 +189,12 @@ class App extends Component {
   };
 
   startScan = async () => {
+    console.log('startScan');
     if (this.state.scanning) {
       return;
     }
-
-    const results = await BleManager.scan([], 3, true);
+    const results = await BleManager.scan([], 5, true);
+    console.log('results', results);
 
     if (results) {
       console.log('Scanning...');
@@ -273,6 +312,7 @@ class App extends Component {
     return (
       <ScreenContainer>
         <View style={styles.main}>
+          <Button title="TEST" onPress={() => this.startScan()} />
           <ActivityIndicator size="large" color="#f2b701" />
         </View>
       </ScreenContainer>
