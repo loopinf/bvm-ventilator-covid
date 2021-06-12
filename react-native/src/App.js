@@ -60,6 +60,18 @@ class App extends Component {
     arr16[7] = (value[17] << 8) + value[16]; // pitch
     arr16[8] = (value[19] << 8) + value[18]; // yaw
 
+    let ax = (this.convert16bitIntToFloat(arr16[0]) / 32768) * 16; // unit [g]
+    let ay = (this.convert16bitIntToFloat(arr16[1]) / 32768) * 16;
+    let az = (this.convert16bitIntToFloat(arr16[2]) / 32768) * 16;
+
+    let wx = (this.convert16bitIntToFloat(arr16[3]) / 32768) * 2000; //  deg/s
+    let wy = (this.convert16bitIntToFloat(arr16[4]) / 32768) * 2000;
+    let wz = (this.convert16bitIntToFloat(arr16[5]) / 32768) * 2000;
+
+    let roll = (this.convert16bitIntToFloat(arr16[5]) / 32768) * 180; // deg
+    let pitch = (this.convert16bitIntToFloat(arr16[5]) / 32768) * 180;
+    let yaw = (this.convert16bitIntToFloat(arr16[5]) / 32768) * 180;
+
     return arr16;
   };
 
@@ -137,7 +149,7 @@ class App extends Component {
     if (!data.value) {
       return;
     }
-    console.log(`data.value, ${data.value}`);
+    // console.log(`data.value, ${data.value}`);
 
     // const value = decode(data.value);
     const value = data.value;
